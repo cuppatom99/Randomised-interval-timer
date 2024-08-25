@@ -12,7 +12,7 @@
             align-items: center;
             height: 100vh;
             margin: 0;
-            background-color: #74b72e;
+            background-color: #90EE90;
             color: white;
             text-align: center;
         }
@@ -165,7 +165,7 @@
 
         function playBeep() {
             const volume = 0.1; // Lower the volume
-            if (remainingTime <= 10 && remainingTime > 0) {
+            if (remainingTime <= 5 && remainingTime > 0) {
                 const beep = new AudioContext();
                 const oscillator = beep.createOscillator();
                 oscillator.type = 'square';
