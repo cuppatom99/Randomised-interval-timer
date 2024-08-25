@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interval Timer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        #timer-display {
+            font-size: 5em;
+            margin-bottom: 20px;
+        }
+
+        #status-display {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+
+        #set-input {
+            font-size: 1.5em;
+            width: 60px;
+            text-align: center;
+        }
+
+        #start-button, #reset-button {
+            font-size: 1.5em;
+            padding: 10px 20px;
+            margin: 10px;
+            cursor: pointer;
+        }
+
+        #reset-button {
+            background-color: #ff4c4c;
+            color: white;
+            border: none;
+        }
+
+        #start-button {
+            background-color: #4caf50;
+            color: white;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="timer-display">00:00</div>
+    <div id="status-display">Enter the number of sets:</div>
+    <input type="number" id="set-input" min="1" value="5">
+    <button id="start-button">Start</button>
+    <button id="reset-button">Reset</button>
+
+    <script>
+        let timer;
+        let currentCycle = 0;
+        let isWorkInterval = true;
+        let remainingTime = 0;
+        let sets = 5;
+        let hasStarted = false;
+
+        const minWorkTime = 30;  // 30 seconds
+        const maxWorkTime = 180; // 3 minutes (180 seconds)
+        const restTime = 20;     // 20 seconds fixed for rest
+        const countdownTime = 10; // Countdown from 10 seconds
+        const lastBeepDuration = 0.4; // Duration of the final beep (4 times longer than normal beep)
+        const lastBeepFrequency = 2000; // Frequency for the final beep (higher pitch)
+        const lastBeepGain = 1.5; // Gain for the final beep (louder)
+
+        const timerDisplay = document.getElementById('timer-display');
+        const statusDisplay = document.getElementById('status-display');
+        const setInput = document.getElementById('set-input');
+        const startButton = document.getElementById('start-button');
+        const resetButton = document.getElementById('reset-button');
+
+        startButton.addEventListener('click', startTimer);
+        resetButton.addEventListener('click', resetTimer);
+
+        function startTimer() {
+            sets = parseInt(setInput.value);
+            if (sets > 0) {
+                currentCycle = 0;
+                hasStarted = false;
+                startButton.disabled = true;
+                startCountdown();
+                timer = setInterval(updateTimer, 1000);
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(timer);
+            timer = null;
+            currentCycle = 0;
+            isWorkInterval = true;
+            remainingTime = 0;
+            hasStarted = false;
+            updateDisplay("00:00", "Enter the number of sets:");
+            startButton.disabled = false;
+        }
+
+        function startCountdown() {
+            remainingTime = countdownTime;
+            statusDisplay.textContent = "Get Ready!";
+        }
+
+        function nextInterval() {
+            if (currentCycle < sets) {
+                if (!hasStarted) {
+                    remainingTime = getRandomTime(minWorkTime, maxWorkTime);
+                    statusDisplay.textContent = "Work";
+                    hasStarted = true;
+                } else if (isWorkInterval) {
+                    remainingTime = restTime;
+                    statusDisplay.textContent = "Rest";
+                    currentCycle++;
+                } else {
+                    remainingTime = getRandomTime(minWorkTime, maxWorkTime);
+                    statusDisplay.textContent = "Work";
+                }
+                isWorkInterval = !isWorkInterval;
+            } else {
+                clearInterval(timer);
+                timer = null;
+                updateDisplay("00:00", "Completed!");
+                startButton.disabled = false;
+            }
+        }
+
+        function updateTimer() {
+            if (remainingTime > 0) {
+                if (remainingTime <= 10) {
+                    if (remainingTime === 1) {
+                        playLastBeep(); // Play a distinctive, louder, higher-pitched beep for the last second
+                    } else {
+                        playBeep(); // Regular beep sound
+                    }
+                }
+                remainingTime--;
+            } else {
+                nextInterval();
+            }
+            updateDisplay(formatTime(remainingTime));
+        }
+
+        function getRandomTime(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function formatTime(seconds) {
+            let minutes = Math.floor(seconds / 60);
+            let remainingSeconds = seconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+
+        function updateDisplay(time, status = null) {
+            timerDisplay.textContent = time;
+            if (status) statusDisplay.textContent = status;
+        }
+
+        function playBeep() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(1000, audioContext.currentTime); // Frequency in Hz
+            gainNode.gain.setValueAtTime(1, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.1);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.1);
+        }
+
+        function playLastBeep() {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(lastBeepFrequency, audioContext.currentTime); // Higher pitch frequency
+            gainNode.gain.setValueAtTime(lastBeepGain, audioContext.currentTime); // Louder gain
+            gainNode.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + lastBeepDuration);
+
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + lastBeepDuration);
+        }
+    </script>
+</body>
+</html>
