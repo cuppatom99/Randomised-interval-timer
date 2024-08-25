@@ -12,7 +12,7 @@
             align-items: center;
             height: 100vh;
             margin: 0;
-            background-color: #90EE90;
+            background-color: #90EE90; /* Updated background color */
             color: white;
             text-align: center;
         }
@@ -37,6 +37,7 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            margin: 5px;
         }
     </style>
 </head>
@@ -51,6 +52,7 @@
         </div>
         <br>
         <button onclick="startTimer()">Start Timer</button>
+        <button onclick="pauseTimer()" id="pause-btn">Pause</button>
     </div>
 
     <script>
@@ -64,11 +66,14 @@
         let isWorkPeriod = true;
         let workPeriods = [];
         let restPeriods = [];
+        let isPaused = false;
+        let pausedTime;
         
         const timerElement = document.getElementById('timer');
         const statusElement = document.getElementById('status');
         const setTimerElement = document.getElementById('set-timer');
         const setsInput = document.getElementById('sets');
+        const pauseButton = document.getElementById('pause-btn');
 
         function startTimer() {
             sets = parseInt(setsInput.value);
@@ -82,13 +87,15 @@
         }
 
         function countdownTimer() {
-            remainingTime--;
-            timerElement.textContent = remainingTime;
-            playBeep();
+            if (!isPaused) {
+                remainingTime--;
+                timerElement.textContent = remainingTime;
+                playBeep();
 
-            if (remainingTime <= 0) {
-                clearInterval(interval);
-                startSet();
+                if (remainingTime <= 0) {
+                    clearInterval(interval);
+                    startSet();
+                }
             }
         }
 
@@ -129,43 +136,57 @@
         }
 
         function runInterval() {
-            remainingTime--;
-            setRemainingTime--;
-            timerElement.textContent = remainingTime;
-            setTimerElement.textContent = `Set Timer: ${formatTime(setRemainingTime)}`;
-            playBeep();
-
-            if (remainingTime <= 0) {
-                clearInterval(interval);
-                if (isWorkPeriod) {
-                    if (restPeriods.length > 0) {
-                        statusElement.textContent = 'Rest';
-                        remainingTime = restPeriods.shift();
-                        isWorkPeriod = false;
-                    } else {
-                        currentSet++;
-                        startSet();
-                        return;
-                    }
-                } else {
-                    if (workPeriods.length > 0) {
-                        statusElement.textContent = 'Work';
-                        remainingTime = workPeriods.shift();
-                        isWorkPeriod = true;
-                    } else {
-                        currentSet++;
-                        startSet();
-                        return;
-                    }
-                }
+            if (!isPaused) {
+                remainingTime--;
+                setRemainingTime--;
                 timerElement.textContent = remainingTime;
+                setTimerElement.textContent = `Set Timer: ${formatTime(setRemainingTime)}`;
+                playBeep();
+
+                if (remainingTime <= 0) {
+                    clearInterval(interval);
+                    if (isWorkPeriod) {
+                        if (restPeriods.length > 0) {
+                            statusElement.textContent = 'Rest';
+                            remainingTime = restPeriods.shift();
+                            isWorkPeriod = false;
+                        } else {
+                            currentSet++;
+                            startSet();
+                            return;
+                        }
+                    } else {
+                        if (workPeriods.length > 0) {
+                            statusElement.textContent = 'Work';
+                            remainingTime = workPeriods.shift();
+                            isWorkPeriod = true;
+                        } else {
+                            currentSet++;
+                            startSet();
+                            return;
+                        }
+                    }
+                    timerElement.textContent = remainingTime;
+                    interval = setInterval(runInterval, 1000);
+                }
+            }
+        }
+
+        function pauseTimer() {
+            if (!isPaused) {
+                clearInterval(interval);
+                pauseButton.textContent = 'Resume';
+                isPaused = true;
+            } else {
+                pauseButton.textContent = 'Pause';
+                isPaused = false;
                 interval = setInterval(runInterval, 1000);
             }
         }
 
         function playBeep() {
             const volume = 0.1; // Lower the volume
-            if (remainingTime <= 5 && remainingTime > 0) {
+            if (remainingTime <= 5 && remainingTime > 0) { // Beeps for the last 5 seconds
                 const beep = new AudioContext();
                 const oscillator = beep.createOscillator();
                 oscillator.type = 'square';
@@ -175,7 +196,7 @@
                 oscillator.connect(gainNode).connect(beep.destination);
                 oscillator.start();
                 oscillator.stop(beep.currentTime + 0.1); // Beep lasts 0.1 seconds
-            } else if (remainingTime === 0) {
+            } else if (remainingTime === 0) { // Last beep is different (longer and higher pitch)
                 const beep = new AudioContext();
                 const oscillator = beep.createOscillator();
                 oscillator.type = 'square';
