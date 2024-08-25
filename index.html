@@ -16,17 +16,23 @@
             color: white;
             text-align: center;
         }
-        #timer {
-            font-size: 3rem;
+        #timer, #set-timer {
+            font-size: 5rem;
             margin-bottom: 20px;
         }
         #status {
-            font-size: 2rem;
+            font-size: 3rem;
             margin-bottom: 10px;
         }
+        input[type="number"] {
+            font-size: 2rem;
+            padding: 10px;
+            width: 100px;
+            text-align: center;
+        }
         button {
-            padding: 10px 20px;
-            font-size: 1.5rem;
+            padding: 15px 30px;
+            font-size: 2rem;
             background-color: #61dafb;
             border: none;
             border-radius: 5px;
@@ -38,6 +44,7 @@
     <div>
         <div id="timer">10</div>
         <div id="status">Get Ready</div>
+        <div id="set-timer">Set Timer: 03:00</div>
         <div>
             <label for="sets">Number of Sets:</label>
             <input type="number" id="sets" min="1" value="3">
@@ -51,6 +58,7 @@
         let currentSet = 0;
         let totalSetDuration = 180; // 3 minutes in seconds
         let remainingTime;
+        let setRemainingTime;
         let interval;
         let countdown = 10; // 10 second countdown
         let isWorkPeriod = true;
@@ -59,6 +67,7 @@
         
         const timerElement = document.getElementById('timer');
         const statusElement = document.getElementById('status');
+        const setTimerElement = document.getElementById('set-timer');
         const setsInput = document.getElementById('sets');
 
         function startTimer() {
@@ -66,7 +75,9 @@
             currentSet = 0;
             statusElement.textContent = 'Get Ready';
             remainingTime = countdown;
+            setRemainingTime = totalSetDuration;
             timerElement.textContent = remainingTime;
+            setTimerElement.textContent = `Set Timer: ${formatTime(setRemainingTime)}`;
             interval = setInterval(countdownTimer, 1000);
         }
 
@@ -106,17 +117,22 @@
                 statusElement.textContent = 'Work';
                 isWorkPeriod = true;
                 remainingTime = workPeriods.shift();
+                setRemainingTime = totalSetDuration;
                 timerElement.textContent = remainingTime;
+                setTimerElement.textContent = `Set Timer: ${formatTime(setRemainingTime)}`;
                 interval = setInterval(runInterval, 1000);
             } else {
                 statusElement.textContent = 'Workout Complete!';
                 timerElement.textContent = '';
+                setTimerElement.textContent = '';
             }
         }
 
         function runInterval() {
             remainingTime--;
+            setRemainingTime--;
             timerElement.textContent = remainingTime;
+            setTimerElement.textContent = `Set Timer: ${formatTime(setRemainingTime)}`;
             playBeep();
 
             if (remainingTime <= 0) {
@@ -148,12 +164,15 @@
         }
 
         function playBeep() {
+            const volume = 0.1; // Lower the volume
             if (remainingTime <= 10 && remainingTime > 0) {
                 const beep = new AudioContext();
                 const oscillator = beep.createOscillator();
                 oscillator.type = 'square';
                 oscillator.frequency.setValueAtTime(500, beep.currentTime); // 500 Hz beep
-                oscillator.connect(beep.destination);
+                const gainNode = beep.createGain();
+                gainNode.gain.setValueAtTime(volume, beep.currentTime);
+                oscillator.connect(gainNode).connect(beep.destination);
                 oscillator.start();
                 oscillator.stop(beep.currentTime + 0.1); // Beep lasts 0.1 seconds
             } else if (remainingTime === 0) {
@@ -161,7 +180,9 @@
                 const oscillator = beep.createOscillator();
                 oscillator.type = 'square';
                 oscillator.frequency.setValueAtTime(1000, beep.currentTime); // 1000 Hz beep
-                oscillator.connect(beep.destination);
+                const gainNode = beep.createGain();
+                gainNode.gain.setValueAtTime(volume, beep.currentTime);
+                oscillator.connect(gainNode).connect(beep.destination);
                 oscillator.start();
                 oscillator.stop(beep.currentTime + 0.4); // Beep lasts 0.4 seconds
             }
@@ -169,6 +190,12 @@
 
         function getRandomInt(min, max) {
             return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
         }
     </script>
 </body>
